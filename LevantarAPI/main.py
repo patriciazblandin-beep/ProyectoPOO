@@ -1,22 +1,19 @@
-import uvicorn 
-from typing import Union
 from fastapi import FastAPI
+# ----------------------------------------------------------------------
+# 1. Importación EXPLICITA del objeto 'router' de cada archivo
+# Esto es más robusto que "from routes import usuarios"
+# ----------------------------------------------------------------------
+from routes.usuarios import router as usuarios_router
+from routes.playlists import router as playlists_router
 
+# Inicialización de la aplicación FastAPI
 app = FastAPI()
 
+# Incluir los routers
+app.include_router(usuarios_router, prefix="/usuarios")
+app.include_router(playlists_router, prefix="/playlists")
 
+# Ruta raíz simple para verificar que la API está viva
 @app.get("/")
 def read_root():
-    return {
-        "Hello": "usuarios"
-        , "version" : "0.1.0"
-        }
-
-
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
-
+    return {"message": "API de música activa."}
