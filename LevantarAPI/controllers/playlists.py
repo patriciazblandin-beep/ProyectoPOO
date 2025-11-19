@@ -1,82 +1,100 @@
-from models.playlists import PlaylistIn, PlaylistOut, PlaylistUpdate
-from typing import List
-from fastapi import HTTPException, status
-from datetime import datetime
 import logging
+from typing import List, Optional
+from fastapi import HTTPException, status
+from models.playlists import PlaylistOut, PlaylistIn, PlaylistUpdate
+from utils.database import execute_query_json
 
-# Configuración básica de logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Base de datos simulada para Playlists (Se reemplazará por SQL Server)
-_playlists = {}
-_next_id = 1
+# --- Auxiliar: Obtener por ID ---
+async def _fetch_playlist_by_id(id_playlists: int) -> Optional[PlaylistOut]:
+    sql = """
+        SELECT [id_playlists], [id_usuario], [nombre], [fecha_creacion]
+        FROM [music].[playlists]
+        WHERE id_playlists = ?;
+    """
+    result = await execute_query_json(sql, params=[id_playlists], fetch_one=True)
+    return PlaylistOut(**result) if result else None
 
-def _check_playlist_exists(playlist_id: int):
-    """Verifica si una playlist existe y levanta 404 si no."""
-    if playlist_id not in _playlists:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Playlist con ID {playlist_id} no encontrada."
-        )
+# --- CREATE ---
+async def create_playlist(data: PlaylistIn) -> PlaylistOut:
+    sql = """
+        INSERT INTO [music].[playlists] ([id_usuario], [nombre])
+        VALUES (?, ?);
+    """
+    params = [data.id_usuario, data.nombre]
 
-# ----------------------------------------------------------------------
-# Lógica de Negocio
-# ----------------------------------------------------------------------
+    try:
+        await execute_query_json(sql, params=params, needs_commit=True)
+        sql_last = """
+            SELECT TOP 1 [id_playlists], [id_usuario], [nombre], [fecha_creacion]
+            FROM [music].[playlists]
+            WHERE id_usuario = ? AND nombre = ?
+            ORDER BY fecha_creacion DESC;
+        """
+        result = await execute_query_json(sql_last, params=params, fetch_one=True)
+        if result:
+            return PlaylistOut(**result)
+        raise HTTPException(status_code=500, detail="Playlist creada pero no se pudo recuperar.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al crear playlist: {str(e)}")
 
-# 1. CREAR PLAYLIST
-async def create_playlist(playlist: PlaylistIn) -> PlaylistOut:
-    """Crea una nueva playlist en la base de datos simulada."""
-    global _next_id
-    
-    # Simular la inserción en SQL Server
-    new_id = _next_id
-    _next_id += 1
-    
-    nueva_playlist = PlaylistOut(
-        id_playlists=new_id,
-        nombre=playlist.nombre,
-        id_usuario=playlist.id_usuario,
-        descripcion=playlist.descripcion,
-        fecha_creacion=datetime.now() # Fecha de creación simulada
-    )
-    _playlists[new_id] = nueva_playlist.model_dump()
-    
-    logger.info(f"Playlist creada con ID: {new_id}")
-    return nueva_playlist
-
-# 2. OBTENER TODAS
+# --- READ ALL ---
 async def get_all_playlists() -> List[PlaylistOut]:
-    """Obtiene todas las playlists."""
-    # Simular consulta a SQL Server
-    return [PlaylistOut(**data) for data in _playlists.values()]
+    sql = """
+        SELECT [id_playlists], [id_usuario], [nombre], [fecha_creacion]
+        FROM [music].[playlists];
+    """
+    try:
+        results = await execute_query_json(sql, fetch_all=True)
+        return [PlaylistOut(**row) for row in results]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al listar playlists: {str(e)}")
 
-# 3. OBTENER UNA
-async def get_one_p(playlist_id: int) -> PlaylistOut:
-    """Obtiene una playlist por su ID."""
-    _check_playlist_exists(playlist_id)
-    # Simular consulta a SQL Server
-    return PlaylistOut(**_playlists[playlist_id])
+# --- READ ONE ---
+async def get_one_playlist(id_playlists: int) -> PlaylistOut:
+    playlist = await _fetch_playlist_by_id(id_playlists)
+    if not playlist:
+        raise HTTPException(status_code=404, detail=f"Playlist con ID {id_playlists} no encontrada.")
+    return playlist
 
-# 4. ACTUALIZAR
-async def update_playlist(playlist_id: int, playlist_update: PlaylistUpdate) -> PlaylistOut:
-    """Actualiza una playlist por su ID."""
-    _check_playlist_exists(playlist_id)
-    
-    current_data = _playlists[playlist_id]
-    updated_fields = playlist_update.model_dump(exclude_unset=True)
-    current_data.update(updated_fields)
-    
-    _playlists[playlist_id] = current_data
-    
-    logger.info(f"Playlist con ID {playlist_id} actualizada.")
-    return PlaylistOut(**current_data)
+# --- UPDATE ---
+async def update_playlist(id_playlists: int, data: PlaylistUpdate) -> PlaylistOut:
+    updates = []
+    params = []
 
-# 5. ELIMINAR
-async def delete_playlist(playlist_id: int) -> int:
-    """Elimina una playlist por su ID."""
-    _check_playlist_exists(playlist_id)
+    if data.nombre is not None:
+        updates.append("[nombre] = ?")
+        params.append(data.nombre)
+
+    if not updates:
+        return await get_one_playlist(id_playlists)
+
+    sql = f"""
+        UPDATE [music].[playlists]
+        SET {', '.join(updates)}
+        WHERE [id_playlists] = ?;
+    """
+    params.append(id_playlists)
+
+    try:
+        await execute_query_json(sql, params=params, needs_commit=True)
+        return await get_one_playlist(id_playlists)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al actualizar playlist: {str(e)}")
+
+# --- DELETE ---
+async def delete_playlist(id_playlists: int) -> str:
+    await get_one_playlist(id_playlists)  # Verifica existencia
+
+    sql = """
+        DELETE FROM [music].[playlists]
+        WHERE [id_playlists] = ?;
+    """
+    try:
+        await execute_query_json(sql, params=[id_playlists], needs_commit=True)
+        return "DELETED"
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al eliminar playlist: {str(e)}")
     
-    del _playlists[playlist_id]
-    
-    logger.info(f"Playlist con ID {playlist_id} eliminada.")
-    return 1
