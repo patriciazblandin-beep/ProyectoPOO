@@ -45,4 +45,4 @@ async def delete_playlist_route(id_playlists: int):
     if deleted == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Playlist no encontrada para eliminar.")
 
-    return
+    return 
