@@ -1,35 +1,31 @@
-from pydantic import BaseModel
+
+from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 
-# =========================================================================
-# 1. MODELO DE ENTRADA (PlaylistIn): Datos recibidos en POST (Crear)
-# =========================================================================
-class PlaylistIn(BaseModel):
-    """Define la estructura de datos para crear una nueva playlist."""
-    nombre: str
-    id_usuario: int # Clave foránea al modelo de Usuarios
-    descripcion: Optional[str] = None
-
-# =========================================================================
-# 2. MODELO DE SALIDA (PlaylistOut): Datos que se devuelven al cliente
-# =========================================================================
 class PlaylistOut(BaseModel):
-    """Define la estructura de datos completa que se devuelve al obtener una playlist."""
-    id_playlists: int
-    nombre: str
-    id_usuario: int
-    descripcion: Optional[str] = None
-    fecha_creacion: datetime # Se asume que la base de datos devuelve un timestamp o datetime
+    id_playlists: Optional[int] = Field(
+        default=None,
+        description="ID autoincrementable de la tabla music.playlists"
+    )
+    id_usuario: int = Field(
+        description="ID del usuario que creó la playlist (INT NOT NULL)"
+    )
+    nombre: str = Field(
+        description="Nombre de la playlist (NVARCHAR(200) NOT NULL)",
+        max_length=200
+    )
+    fecha_creacion: Optional[datetime] = Field(
+        default=None,
+        description="Fecha de creación generada automáticamente (DATETIME DEFAULT SYSDATETIME())"
+    )
 
-# =========================================================================
-# 3. MODELO DE ACTUALIZACIÓN (PlaylistUpdate): Campos opcionales para PUT
-# =========================================================================
-class PlaylistUpdate(BaseModel):
-    """Define los campos opcionales que pueden ser actualizados."""
-    nombre: Optional[str] = None
-    descripcion: Optional[str] = None
-    
-    # Configuramos Pydantic para permitir el uso de índices
     class Config:
         from_attributes = True
+
+class PlaylistIn(BaseModel):
+    id_usuario: int = Field(description="ID del usuario que crea la playlist")
+    nombre: str = Field(description="Nombre de la playlist", max_length=200)
+
+class PlaylistUpdate(BaseModel):
+    nombre: Optional[str] = Field(default=None, description="Nuevo nombre de la playlist", max_length=200)
