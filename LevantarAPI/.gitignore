@@ -1,3 +1,9 @@
+
+# Ignorar entornos virtuales
+levantarapienv/
+
+# Ignorar variables de entorno
 .env
 
-levantarapienv/
+__pycache__/
+*.pyc
