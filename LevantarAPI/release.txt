@@ -36,4 +36,6 @@ az acr login --name ${ACR_PRD}
 docker tag ${IMAGE_LOCAL}:prod ${REPO_PROD}:${VERSION}
 docker tag ${IMAGE_LOCAL}:prod ${REPO_PROD}:latest
 docker push ${REPO_PROD}:${VERSION}
-docker push ${REPO_PROD}:latest
+docker push ${REPO_PROD}:latest 
+
+email-validator 
