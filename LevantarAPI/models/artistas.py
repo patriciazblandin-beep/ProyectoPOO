@@ -1,32 +1,29 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
+
 from typing import Optional
 
-# =========================================================================
-# 1. MODELO DE ENTRADA (artistaIn): Datos recibidos en POST (Crear)
-# =========================================================================
-class ArtistaIn(BaseModel):
-    """Define la estructura de datos para crear una nueva playlist."""
-    nombre: str
-    discografica: str 
-
-# =========================================================================
-# 2. MODELO DE SALIDA (artistatOut): Datos que se devuelven al cliente
-# =========================================================================
 class ArtistaOut(BaseModel):
-    """Define la estructura de datos completa que se devuelve al obtener un Artista."""
-    id_artista: int
+    id_artista: Optional[int] = Field(default=None)
     nombre: str
-    discografica: str
-
-
-# =========================================================================
-# 3. MODELO DE ACTUALIZACIÓN (artista): Campos opcionales para PUT
-# =========================================================================
-class ArtistaUpdate(BaseModel):
-    """Define los campos opcionales que pueden ser actualizados."""
-    nombre: Optional[str] = None
     discografica: Optional[str] = None
-    
-    # Configuramos Pydantic para permitir el uso de índices
+
     class Config:
-        from_attributes = True 
+        from_attributes = True
+
+class ArtistaIn(BaseModel):
+    nombre: str = Field(..., max_length=100)
+    discografica: Optional[str] = Field(default=None, max_length=150)
+
+    @field_validator("nombre")
+    @classmethod
+    def nombre_no_vacio(cls, value):
+        if not value or not value.strip():
+            raise ValueError("El nombre del artista no puede estar vacío.")
+        return value
+
+
+
+class ArtistaUpdate(BaseModel):
+    nombre: Optional[str] = Field(default=None, max_length=100)
+    discografica: Optional[str] = Field(default=None, max_length=150)
+ 
