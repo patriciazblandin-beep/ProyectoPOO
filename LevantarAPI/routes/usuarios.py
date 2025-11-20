@@ -12,54 +12,42 @@ router = APIRouter(
     tags=["Usuarios"],
 )
 
-# ----------------------------------------------------------------------
-# 1. POST: Crear Nuevo Usuario
-# ----------------------------------------------------------------------
-# La ruta ahora es solo "/" (el prefijo /usuarios/ se agrega en main.py)
+# Crear Nuevo Usuario
 @router.post("/", response_model=UsuarioOut, status_code=status.HTTP_201_CREATED, summary="Crea un nuevo usuario")
 async def create_user_route(usuario: UsuarioIn):
     # Llama al controlador para crear y obtener el objeto completo
     return await user_controller.create_user(usuario)
 
-# ----------------------------------------------------------------------
-# 2. GET: Obtener TODOS los Usuarios
-# ----------------------------------------------------------------------
-# La ruta ahora es solo "/"
+#  Obtener TODOS los Usuarios
 @router.get("/", response_model=List[UsuarioOut], summary="Obtiene todos los usuarios")
 async def get_all_users_route():
     # Llama al controlador para obtener la lista de usuarios
     return await user_controller.get_all_u()
 
-# ----------------------------------------------------------------------
-# 3. GET: Obtener Usuario por ID
-# ----------------------------------------------------------------------
-# La ruta queda igual: "/{id_usuario}"
+
+#  Obtener Usuario por ID
+
 @router.get("/{id_usuario}", response_model=UsuarioOut, summary="Obtiene un usuario por su ID")
 async def get_user_by_id_route(id_usuario: int):
     # Llama al controlador. Si no existe, el controlador lanza un 404
     return await user_controller.get_one_u(id_usuario)
 
-# ----------------------------------------------------------------------
-# 4. PUT: Actualizar Usuario por ID
-# ----------------------------------------------------------------------
-# La ruta queda igual: "/{id_usuario}"
+
+#  Actualizar Usuario por ID
 @router.put("/{id_usuario}", response_model=UsuarioOut, summary="Actualiza un usuario existente")
 async def update_user_route(id_usuario: int, usuario: UsuarioUpdate):
     # Llama al controlador. Si no existe o hay conflicto de email, el controlador lanza el error
     return await user_controller.update_user(id_usuario, usuario)
 
-# ----------------------------------------------------------------------
-# 5. DELETE: Eliminar Usuario por ID
-# ----------------------------------------------------------------------
+#  Eliminar Usuario por ID
+
 @router.delete("/{id_usuario}", status_code=status.HTTP_204_NO_CONTENT, summary="Elimina un usuario por su ID")
 async def delete_user_route(id_usuario: int):
-    # CAMBIO 2: Almacenar el resultado para validar si el usuario existía.
+    
     deleted_count = await user_controller.delete_user(id_usuario)
     
-    # CAMBIO 3: Lanzar 404 si el controlador no eliminó nada.
+    
     if deleted_count == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado para eliminar.")
 
-    # Cuando una función de ruta que tiene status_code=204 no retorna nada, 
-    # FastAPI envía automáticamente el 204 No Content.
     return
