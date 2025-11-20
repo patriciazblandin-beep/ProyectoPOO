@@ -9,6 +9,9 @@ CREATE TABLE music.usuarios(
     , fecha_registro DATETIME DEFAULT SYSDATETIME ()
 
 )
+
+SELECT * FROM music.usuarios  
+
 --Tabla de playlist--
 CREATE TABLE music.playlists(
     id_playlists INT IDENTITY(1,1) PRIMARY KEY
@@ -21,17 +24,21 @@ ALTER TABLE music.playlists
 ADD CONSTRAINT FK_playlists_usuarios
 FOREIGN KEY (id_usuario) REFERENCES music.usuarios(id_usuario)
 
--- Verificar si el esquema 'music' existe
-SELECT name FROM sys.schemas WHERE name = 'music';
+SELECT * FROM music.playlists 
 
----Tabla Artista
+---para verificar
+SELECT name FROM sys.schemas WHERE name = 'music';
+SELECT * FROM music.artistas
+
+SELECT * FROM music.artistas 
+---Tabla de los artitas
 CREATE TABLE music.artistas(
     id_artista INT IDENTITY (1,1) PRIMARY KEY
     , nombre NVARCHAR(100) NOT NULL
     , discografica NVARCHAR(150)
 )
 
---Tabla Albumes
+--Tabla de albumes---
 CREATE TABLE music.albumes(
     id_album INT IDENTITY (1,1) PRIMARY KEY
     , id_artista INT NOT NULL
@@ -43,7 +50,9 @@ ALTER TABLE music.albumes
 ADD CONSTRAINT FK_albumes_artistas
 FOREIGN KEY (id_artista) REFERENCES music.artistas(id_artista)
 
---Tabla Canciones---
+SELECT * FROM music.albumes
+
+--Tabla cancioness--
 CREATE TABLE music.canciones(
     id_cancion INT IDENTITY(1,1) PRIMARY KEY 
     , id_album INT NOT NULL 
@@ -64,6 +73,7 @@ CREATE TABLE music.playlists_canciones(
     , comentario NVARCHAR(200)
      PRIMARY KEY (id_playlists , id_cancion) 
 )
+SELECT * FROM music.canciones
 
 ALTER TABLE music.playlists_canciones
 ADD CONSTRAINT FK_playlistsCanciones_playlists
