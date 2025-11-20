@@ -7,7 +7,6 @@ from utils.database import execute_query_json
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# --- Auxiliar: Obtener por ID ---
 async def _fetch_playlist_by_id(id_playlists: int) -> Optional[PlaylistOut]:
     sql = """
         SELECT [id_playlists], [id_usuario], [nombre], [fecha_creacion]
@@ -17,7 +16,6 @@ async def _fetch_playlist_by_id(id_playlists: int) -> Optional[PlaylistOut]:
     result = await execute_query_json(sql, params=[id_playlists], fetch_one=True)
     return PlaylistOut(**result) if result else None
 
-# --- CREATE ---
 async def create_playlist(data: PlaylistIn) -> PlaylistOut:
     sql = """
         INSERT INTO [music].[playlists] ([id_usuario], [nombre])
@@ -40,7 +38,6 @@ async def create_playlist(data: PlaylistIn) -> PlaylistOut:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al crear playlist: {str(e)}")
 
-# --- READ ALL ---
 async def get_all_playlists() -> List[PlaylistOut]:
     sql = """
         SELECT [id_playlists], [id_usuario], [nombre], [fecha_creacion]
@@ -59,7 +56,6 @@ async def get_one_playlist(id_playlists: int) -> PlaylistOut:
         raise HTTPException(status_code=404, detail=f"Playlist con ID {id_playlists} no encontrada.")
     return playlist
 
-# --- UPDATE ---
 async def update_playlist(id_playlists: int, data: PlaylistUpdate) -> PlaylistOut:
     updates = []
     params = []
@@ -84,9 +80,8 @@ async def update_playlist(id_playlists: int, data: PlaylistUpdate) -> PlaylistOu
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al actualizar playlist: {str(e)}")
 
-# --- DELETE ---
 async def delete_playlist(id_playlists: int) -> str:
-    await get_one_playlist(id_playlists)  # Verifica existencia
+    await get_one_playlist(id_playlists) 
 
     sql = """
         DELETE FROM [music].[playlists]
@@ -97,4 +92,3 @@ async def delete_playlist(id_playlists: int) -> str:
         return "DELETED"
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al eliminar playlist: {str(e)}")
-    
