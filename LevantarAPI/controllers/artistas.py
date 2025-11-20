@@ -1,77 +1,34 @@
+from fastapi import HTTPException
 from models.artistas import ArtistaIn, ArtistaOut, ArtistaUpdate
-from typing import List
-from fastapi import HTTPException, status
-import logging
+from utils.database import execute_query_json
 
-# Configuración básica de logging
-logger = logging.getLogger(__name__)
+async def create_artista(data: ArtistaIn) -> ArtistaOut:
+    sql = "INSERT INTO music.artistas (nombre, discografica) VALUES (?, ?);"
+    await execute_query_json(sql, params=[data.nombre, data.discografica], needs_commit=True)
 
-# Base de datos simulada para Playlists (Se reemplazará por SQL Server)
-_artistas = {}
-_next_id = 1
+    sql_last = "SELECT TOP 1 id_artista, nombre, discografica FROM music.artistas ORDER BY id_artista DESC;"
+    result = await execute_query_json(sql_last, fetch_one=True)
+    return ArtistaOut(**result)
 
-def _check_artistas_exists(artista_id: int):
-    """Verifica si una playlist existe y levanta 404 si no."""
-    if artista_id not in _artistas :
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Artista con ID {artista_id} no encontrada."
-        )
+async def get_all_artistas() -> list[ArtistaOut]:
+    sql = "SELECT id_artista, nombre, discografica FROM music.artistas;"
+    result = await execute_query_json(sql, fetch_all=True) 
+    print("Artistas encontrados:", result)
+    return [ArtistaOut(**row) for row in result]
 
-# ----------------------------------------------------------------------
-# Lógica de Negocio
-# ----------------------------------------------------------------------
+async def get_one_artista(id_artista: int) -> ArtistaOut:
+    sql = "SELECT id_artista, nombre, discografica FROM music.artistas WHERE id_artista = ?;"
+    result = await execute_query_json(sql, params=[id_artista], fetch_one=True)
+    if result:
+        return ArtistaOut(**result)
+    raise HTTPException(status_code=404, detail="Artista no encontrado.")
 
-# 1. CREAR PLAYLIST
-async def create_artistas(artista: ArtistaIn) -> ArtistaOut:
-    """Crea un nuevo artista en la base de datos simulada."""
-    global _next_id
-    
-    new_id = _next_id
-    _next_id += 1
-    
-    nueva_artista = ArtistaOut(
-        id_artista=new_id,
-        nombre=artista.nombre,
-        discografica=artista.discografica,
-    )
-    _artistas[new_id] = nueva_artista.model_dump()
-    
-    logger.info(f"artista creada con ID: {new_id}")
-    return nueva_artista
+async def update_artista(id_artista: int, data: ArtistaUpdate) -> ArtistaOut:
+    sql = "UPDATE music.artistas SET nombre = ?, discografica = ? WHERE id_artista = ?;"
+    await execute_query_json(sql, params=[data.nombre, data.discografica, id_artista], needs_commit=True)
+    return await get_one_artista(id_artista)
 
-# 2. OBTENER TODAS
-async def get_all_artistas() -> List[ArtistaOut]:
-    """Obtiene todos los artistas."""
-    # Simular consulta a SQL Server
-    return [ArtistaOut(**data) for data in _artistas.values()]
-
-# 3. OBTENER UNA
-async def get_one_a(artista_id: int) -> ArtistaOut:
-    """Obtiene un artista por su ID."""
-    _check_artistas_exists(artista_id)
-    return artista_id(**_artistas[artista_id])
-
-# 4. ACTUALIZAR
-async def update_artistas(artista_id: int, artista_update: ArtistaUpdate) -> ArtistaOut:
-    """Actualiza un artista por su ID."""
-    _check_artistas_exists(artista_id)
-    
-    current_data = _artistas[artista_id]
-    updated_fields = artista_update.model_dump(exclude_unset=True)
-    current_data.update(updated_fields)
-    
-    _artistas[artista_id] = current_data
-    
-    logger.info(f"Playlist con ID {artista_id} actualizada.")
-    return ArtistaOut(**current_data)
-
-# 5. ELIMINAR
-async def delete_playlist(artista_id: int) -> int:
-    """Elimina un artista por su ID."""
-    _check_artistas_exists(artista_id)
-    
-    del _artistas[artista_id]
-    
-    logger.info(f"artista con ID {artista_id} eliminada.")
-    return 1
+async def delete_artista(id_artista: int) -> int:
+    sql = "DELETE FROM music.artistas WHERE id_artista = ?;"
+    result = await execute_query_json(sql, params=[id_artista], needs_commit=True)
+    return result 
